@@ -31,6 +31,7 @@ breed_dict = {
     "羅威納": "Rottweiler",
     "鬆獅犬": "Chow Chow",
     "米格魯": "Beagle",
+    "玩具貴賓犬":"Poodle (Toy)"
 }
 
 # 英文名稱與 URL 路徑
@@ -58,6 +59,7 @@ BREEDS_URL = {
     "Rottweiler": "rottweiler",
     "Chow Chow": "chow-chow",
     "Beagle": "beagle",
+    "Poodle (Toy)": "poodle-toy"
 }
 
 def get_breed_info(chinese_name):
@@ -128,15 +130,18 @@ def get_breed_info(chinese_name):
     
     import json
     data_dict = json.loads(data)
-    health_desc = data_dict['settings']['breed_data']['health'][english_name]['akc_org_health']
+    health_desc = data_dict['settings']['breed_data']['health'][breed_url_part]['akc_org_health']
     if health_desc:
         info["健康"] = health_desc
         print(health_desc.replace(" ", "").strip())
     
-    # 提取推薦檢測
-    tests = [li.text.strip() for li in driver.find_elements(By.CLASS_NAME, "breed-table__accordion-li") if li.text.strip()]
+    # 提取推薦檢測'
+    from pprint import pprint
+    pprint(data_dict['settings']['breed_data']['health'][breed_url_part])
+    tests = data_dict['settings']['breed_data']['health'][breed_url_part]['tests_pipe_delimited_list']
+    
     if tests:
-        info["推薦檢測"] = "; ".join(tests)
+        info["推薦檢測"] = tests
     
     # 輸出結果
         print(f"\n{chinese_name} ({english_name}):")

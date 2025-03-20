@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 from ultralytics import YOLO
 from tkinter import Tk, filedialog
 
@@ -21,12 +22,11 @@ NUTRITION_TABLE = {
 def select_image():
     """使用 Tkinter 開啟檔案選擇對話框，讓使用者選擇圖片"""
     root = Tk()
-    root.withdraw()  # 隱藏主視窗
     file_path = filedialog.askopenfilename(
         title="選擇一張圖片",
         filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp")]
     )
-    return file_path if file_path else None  # 如果未選擇檔案，返回 None
+    return file_path if file_path else None
 
 def load_yolo_model(model_path):
     """載入 YOLO 模型"""
@@ -34,16 +34,16 @@ def load_yolo_model(model_path):
         print("模型路徑無效，請提供正確的路徑！")
         return None
     
-    if not path.exists(model_path):
+    if not os.path.exists(model_path):
         print(f"模型檔案 {model_path} 不存在，請確認路徑！")
         return None
     
-    model = YOLO(model_path)  # 假設 YOLO 模組本身會處理異常
+    model = YOLO(model_path)
     return model
 
 def detect_food(image_path, model):
     """使用 YOLO 模型進行食物辨識"""
-    if not image_path or not path.exists(image_path):
+    if not image_path or not os.path.exists(image_path):
         print("圖片路徑無效或檔案不存在，請確認！")
         return None
 
@@ -54,15 +54,23 @@ def detect_food(image_path, model):
         return None
 
     # 使用 YOLO 模型進行預測
-    results = model.predict(source=img, conf=0.2)  # conf 為置信度閾值，可調整
+    results = model.predict(source=img, conf=0.25)
 
     # 提取辨識結果
     detected_foods = []
+    print("YOLO 辨識結果：")
     for result in results:
-        for box in result.boxes:
-            label = result.names[int(box.cls)]
-            if label in NUTRITION_TABLE:
-                detected_foods.append(label)
+        for box in result.boxes.data:
+            class_id = int(box[5])  # 類別 ID
+            label = model.names[class_id]  # 原始標籤
+            print(f" - 原始標籤: {label}")
+            # 將標籤轉換為與 NUTRITION_TABLE 一致的格式（首字母大寫）
+            normalized_label = label.title()
+            if normalized_label in NUTRITION_TABLE:
+                detected_foods.append(normalized_label)
+                print(f" - 匹配成功: {normalized_label}")
+            else:
+                print(f" - 未找到營養資訊: {normalized_label}")
 
     return detected_foods
 
@@ -85,10 +93,13 @@ def display_nutrition(detected_foods):
 
 def main():
     # 載入 YOLO 模型（請替換為你的模型路徑）
-    model_path = "path/to/your/yolo/model.pt"  # 替換為你的 YOLO 模型路徑
+    model_path = "best.pt"  # 替換為你的 YOLO 模型路徑
     model = load_yolo_model(model_path)
     if model is None:
         return
+
+    # 打印模型的類別名稱，方便檢查
+    print("模型支持的類別名稱：", model.names)
 
     while True:
         print("\n請選擇操作：")
@@ -99,6 +110,7 @@ def main():
         if choice == "2":
             print("程式結束！")
             break
+
         if choice != "1":
             print("無效選項，請重新輸入！")
             continue
