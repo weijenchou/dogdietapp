@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from googletrans import Translator
 
 # 中文與英文狗種對照
 breed_dict = {
@@ -61,6 +62,8 @@ BREEDS_URL = {
     "Beagle": "beagle",
     "Poodle (Toy)": "poodle-toy"
 }
+
+translator = Translator()
 
 def get_breed_info(chinese_name):
     if chinese_name not in breed_dict:
@@ -132,16 +135,17 @@ def get_breed_info(chinese_name):
     data_dict = json.loads(data)
     health_desc = data_dict['settings']['breed_data']['health'][breed_url_part]['akc_org_health']
     if health_desc:
-        info["健康"] = health_desc
-        print(health_desc.replace(" ", "").strip())
+        # 將健康描述翻譯成中文
+        translated_health = translator.translate(health_desc, src='en', dest='zh-cn').text
+        info["健康"] = translated_health
+        print(translated_health.replace(" ", "").strip())
     
-    # 提取推薦檢測'
-    from pprint import pprint
-    pprint(data_dict['settings']['breed_data']['health'][breed_url_part])
+    # 提取推薦檢測
     tests = data_dict['settings']['breed_data']['health'][breed_url_part]['tests_pipe_delimited_list']
-    
     if tests:
-        info["推薦檢測"] = tests
+        # 將推薦檢測翻譯成中文
+        translated_tests = translator.translate(tests, src='en', dest='zh-cn').text
+        info["推薦檢測"] = translated_tests
     
     # 輸出結果
         print(f"\n{chinese_name} ({english_name}):")
