@@ -1,11 +1,16 @@
 import time
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-from googletrans import Translator
+from google.cloud import translate_v2 as translate  # 使用 Google Cloud Translation API
+from dotenv import load_dotenv  # 用來加載 .env 文件
+
+# 加載環境變數
+load_dotenv('information.env')
 
 # 中文與英文狗種對照
 breed_dict = {
@@ -32,7 +37,7 @@ breed_dict = {
     "羅威納": "Rottweiler",
     "鬆獅犬": "Chow Chow",
     "米格魯": "Beagle",
-    "玩具貴賓犬":"Poodle (Toy)"
+    "玩具貴賓犬": "Poodle (Toy)"
 }
 
 # 英文名稱與 URL 路徑
@@ -63,7 +68,15 @@ BREEDS_URL = {
     "Poodle (Toy)": "poodle-toy"
 }
 
-translator = Translator()
+# 初始化 Google Cloud Translation API 客戶端
+translate_client = translate.Client.from_service_account_json(os.getenv('GOOGLE_Translation_API_KEY'))
+
+# 翻譯文本為繁體中文
+def translate_text_to_chinese(text):
+    if text:
+        result = translate_client.translate(text, target_language='zh-TW')
+        return result['translatedText']
+    return text
 
 def get_breed_info(chinese_name):
     if chinese_name not in breed_dict:
@@ -84,7 +97,7 @@ def get_breed_info(chinese_name):
         EC.presence_of_element_located((By.CLASS_NAME, "breed-page__hero__overview__icon-block-wrap"))
     )
     
-    # 處理 cookie 彈窗（如果存在）
+    # 處理 cookie 彈窗（如果存在） 
     try:
         accept_button = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))  # OneTrust 常見的 Accept 按鈕 ID
@@ -128,30 +141,30 @@ def get_breed_info(chinese_name):
             print(f"無法點擊健康區塊: {e}")
     
     # 提取健康描述
-    element = driver.find_element(By.XPATH, "//div[@data-js-component='breedPage']")
+    element = driver.find_element(By.XPATH, "//div[@data-js-component='breedPage']") 
     data = element.get_attribute("data-js-props")
     
     import json
     data_dict = json.loads(data)
     health_desc = data_dict['settings']['breed_data']['health'][breed_url_part]['akc_org_health']
     if health_desc:
-        # 將健康描述翻譯成中文
-        translated_health = translator.translate(health_desc, src='en', dest='zh-cn').text
+        # 使用翻譯函式將健康描述翻譯為繁體中文
+        translated_health = translate_text_to_chinese(health_desc)
         info["健康"] = translated_health
-        print(translated_health.replace(" ", "").strip())
+        print(translated_health.replace(" ", "").strip())
     
     # 提取推薦檢測
     tests = data_dict['settings']['breed_data']['health'][breed_url_part]['tests_pipe_delimited_list']
     if tests:
-        # 將推薦檢測翻譯成中文
-        translated_tests = translator.translate(tests, src='en', dest='zh-cn').text
+        # 使用翻譯函式將推薦檢測翻譯為繁體中文
+        translated_tests = translate_text_to_chinese(tests)
         info["推薦檢測"] = translated_tests
     
     # 輸出結果
-        print(f"\n{chinese_name} ({english_name}):")
-        for key, value in info.items():
-            print(f"{key}: {value if value else '未找到相關資訊'}")
-        print("-" * 50)
+    print(f"\n{chinese_name} ({english_name}):")
+    for key, value in info.items():
+        print(f"{key}: {value if value else '未找到相關資訊'}")
+    print("-" * 50)
 
 def main():
     print("請輸入想查詢的狗種中文名稱（輸入 '退出' 結束程式）：")
