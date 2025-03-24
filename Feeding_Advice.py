@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from google.cloud import translate_v2 as translate
 from dotenv import load_dotenv
 import os
+import re
 
 
 # 中文轉英文的字典
@@ -83,10 +84,11 @@ def get_what_to_feed_info(soup):
         print("沒有有效的頁面內容，無法繼續處理。")
         return None
 
-    whattofeed_title = soup.find('h2', string=lambda x: x and 'What To Feed' in x)
+    # 使用正則表達式進行匹配
+    whattofeed_title = soup.find('h2', string=re.compile(r'What\s*To\s*Feed', re.IGNORECASE))
     
     if whattofeed_title:
-        print("\n標題:", translate_text_to_chinese(whattofeed_title.get_text(strip=False)))
+        #print("\n標題:", translate_text_to_chinese(whattofeed_title.get_text(strip=False)))
 
         paragraphs = []
         current_tag = whattofeed_title.find_next_sibling()
@@ -116,10 +118,10 @@ def get_how_to_feed_info(soup):
         print("沒有有效的頁面內容，無法繼續處理。")
         return None
 
-    h3_title = soup.find('h3', string=lambda x: x and 'How To Feed' in x)
+    h3_title = soup.find('h3', string=re.compile(r'How\s*To\s*Feed', re.IGNORECASE))
     
     if h3_title:
-        print("\n標題:", translate_text_to_chinese(h3_title.get_text(strip=False)))
+        #print("\n標題:", translate_text_to_chinese(h3_title.get_text(strip=False)))
         current_tag = h3_title.find_next_sibling()
 
         while current_tag:
@@ -147,7 +149,7 @@ def get_nutritional_tips_info(soup):
     h3_title = soup.find('h3', string=lambda x: x and 'Nutritional Tips' in x)
 
     if h3_title:
-        print("\n標題:", translate_text_to_chinese(h3_title.get_text(strip=False)))
+        #print("\n標題:", translate_text_to_chinese(h3_title.get_text(strip=False)))
 
         current_tag = h3_title.find_next_sibling()
 
