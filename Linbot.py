@@ -1,4 +1,3 @@
-# main.py
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -6,7 +5,9 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageMess
 import sqlite3
 from datetime import datetime
 import tempfile
-import dogdietyolo  # 匯入 dogdietyolo 模組
+import os
+import dogdietyolo  # 匯入食物辨識模組
+import petmap  # 匯入寵物餐廳搜尋模組
 
 app = Flask(__name__)
 
@@ -50,6 +51,9 @@ welcome_message = """您好，我是寵物飲食機器人，請問需要什麼�
 10:推薦寵物餐廳
 請回覆你需求的數字"""
 
+# 用於暫存用戶狀態
+user_states = {}
+
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
@@ -62,9 +66,32 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
-    user_input = event.message.text
+    user_input = event.message.text.strip()
     user_id = event.source.user_id
 
+    # 檢查用戶是否處於某個操作狀態
+    if user_id in user_states:
+        state = user_states[user_id]
+        
+        # 處理選項 10 的後續輸入
+        if state.get('step') == 'awaiting_location_choice':
+            if user_input == "1":
+                response = petmap.search_pet_restaurants("1")
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+                del user_states[user_id]  # 完成後清除狀態
+            elif user_input == "2":
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="請輸入目標地點："))
+                user_states[user_id]['step'] = 'awaiting_place_name'
+            else:
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="無效選擇，請輸入 1 或 2"))
+        
+        elif state.get('step') == 'awaiting_place_name':
+            response = petmap.search_pet_restaurants("2", user_input)
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
+            del user_states[user_id]  # 完成後清除狀態
+        return
+
+    # 初始選項處理
     if user_input == "開始" or user_input == "start":
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=welcome_message))
     elif user_input == "1":
@@ -87,6 +114,7 @@ def handle_text_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="請上傳一張含所有食材的照片(建議為未料理前)"))
     elif user_input == "10":
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="搜尋寵物餐廳：\n1.目前位置\n2.輸入目的地名稱\n請輸入對應數字:"))
+        user_states[user_id] = {'step': 'awaiting_location_choice'}
     elif "名字" in user_input and "生日" in user_input and "體重" in user_input:
         name = user_input.split("名字:")[1].split(" ")[0]
         birthday = user_input.split("生日:")[1].split(" ")[0]
