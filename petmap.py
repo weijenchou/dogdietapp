@@ -74,7 +74,7 @@ def search_nearby_places(api_key, lat, lon, fields=get_place_detail_fields(), ra
         return list()
 
 
-def get_location(API_KEY):
+def get_location(API_KEY, choice):
     """
     讓使用者選擇搜尋方式，並返回經度和緯度。
     選擇方式有兩種：
@@ -82,7 +82,7 @@ def get_location(API_KEY):
     2. 輸入地標名稱
     """
     # 讓使用者選擇
-    choice = input("請選擇搜尋方式(輸入1或2):\n1. 目前位置\n2. 輸入地標名稱\n選擇 (1/2): ").strip()
+    #choice = input("請選擇搜尋方式(輸入1或2):\n1. 目前位置\n2. 輸入地標名稱\n選擇 (1/2): ").strip()
 
     if choice == '1':
         # 使用 geocoder 獲取目前位置
@@ -116,7 +116,9 @@ if __name__ == "__main__":
     load_dotenv('information.env')
     API_KEY = os.getenv("GOOGLE_MAP_API_KEY")
 
-    LAT, LON = get_location(API_KEY)
+    choice = input("請選擇搜尋方式(輸入1或2):\n1. 目前位置\n2. 輸入地標名稱\n選擇 (1/2): ").strip()
+
+    LAT, LON = get_location(API_KEY, choice)
 
     # 接下來你可以利用 LAT 和 LON 來進行其他的搜尋操作
     places = search_nearby_places(API_KEY, LAT, LON, max_count=20, place_type=['dog_cafe', 'cat_cafe', 'restaurant'])
@@ -128,7 +130,6 @@ if __name__ == "__main__":
             print(f"⭐ 評分: {place.get('rating', '無評分')}")
             print(f"📍 地址: {place.get('formattedAddress', '地址未知')}")
             print()
-
 
 
 
